@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group 3 Portfolio</title>
+    <title>我的作品集</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f0f0; }
         
-        /* iframe的样式，让它像一个页面一样铺满整个屏幕 */
-        .portfolio-iframe {
-            display: none; /* 默认隐藏 */
-            width: 100%;
-            height: 100%;
-            border: none; /* 移除边框 */
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .portfolio-iframe.active {
-            display: block; /* 只显示激活的iframe */
-        }
+        .portfolio-iframe { display: none; width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; }
+        .portfolio-iframe.active { display: block; }
         
-        /* 导航和指示器的样式 */
-        .nav-arrow { position: fixed; top: 50%; transform: translateY(-50%); z-index: 9999; background-color: rgba(0, 0, 0, 0.4); color: white; border: none; font-size: 28px; font-weight: bold; cursor: pointer; padding: 10px 15px; border-radius: 50%; user-select: none; transition: background-color 0.2s; }
+        .nav-arrow { 
+            position: fixed; top: 50%; transform: translateY(-50%); z-index: 9999; 
+            background-color: rgba(0, 0, 0, 0.4); color: white; border: none; 
+            font-size: 28px; font-weight: bold; cursor: pointer; padding: 10px 15px; 
+            border-radius: 50%; user-select: none; transition: all 0.2s;
+            visibility: hidden;
+            opacity: 0;
+        }
+        .nav-arrow.visible {
+            visibility: visible;
+            opacity: 1;
+        }
         .nav-arrow:hover { background-color: rgba(0, 0, 0, 0.7); }
         #prevBtn { left: 20px; }
         #nextBtn { right: 20px; }
@@ -33,59 +31,77 @@
 <body>
 
     <div id="portfolio-container"></div>
-
     <button id="prevBtn" class="nav-arrow">&lt;</button>
     <button id="nextBtn" class="nav-arrow">&gt;</button>
     <div id="pageIndicator" class="page-indicator"></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ==================================================================
-            // === 已按周次序重新排序您的作品列表 ===
-            // ==================================================================
             const projects = [
                 // --- Week 5 ---
                 { file: "alnair-week-5.html", title: "Alnair Week 5" },
                 { file: "chen-week-5.html", title: "Chen Week 5" },
                 { file: "kiva-week-5.html", title: "Kiva Week 5" },
                 { file: "lizzy-week-5.html", title: "Lizzy Week 5" },
-                
                 // --- Week 6 ---
                 { file: "alnair-week-6.html", title: "Alnair Week 6" },
                 { file: "chen-week-6.html", title: "Chen Week 6" },
                 { file: "kiva-week-6.html", title: "Kiva Week 6" },
                 { file: "lizzy-week-6.html", title: "Lizzy Week 6" },
-
                 // --- Week 7 ---
                 { file: "alnair-week-7.html", title: "Alnair Week 7" },
                 { file: "chen-week-7.html", title: "Chen Week 7" },
                 { file: "kiva-week-7.html", title: "Kiva Week 7" },
                 { file: "lizzy-week-7.html", title: "Lizzy Week 7" },
-                
                 // --- Week 8 ---
                 { file: "alnair-week-8.html", title: "Alnair Week 8" },
                 { file: "chen-week-8.html", title: "Chen Week 8" },
                 { file: "kiva-week-8.html", title: "Kiva Week 8" },
                 { file: "lizzy-week-8.html", title: "Lizzy Week 8" }
             ];
-            // ==================================================================
 
             const container = document.getElementById('portfolio-container');
             const prevBtn = document.getElementById('prevBtn');
             const nextBtn = document.getElementById('nextBtn');
             const pageIndicator = document.getElementById('pageIndicator');
-            const mainTitle = "Group 3 Portfolio";
+            const mainTitle = "我的作品集";
             let currentIndex = 0;
+            let loadedCount = 0;
 
-            // 根据配置，创建所有的iframe元素
+            // --- 经过修复的预加载逻辑 ---
+            function onIframeLoad(event) {
+                const iframe = event.target; // 获取触发事件的iframe
+                
+                // [BUG修复] 检查这个iframe是否已经计过数了
+                if (iframe.dataset.isLoaded === 'true') {
+                    return; // 如果已经计过数，则直接退出，防止重复计数
+                }
+                
+                // [BUG修复] 给iframe打上“已加载”的标记
+                iframe.dataset.isLoaded = 'true';
+                
+                loadedCount++;
+                pageIndicator.textContent = `正在预加载... (${loadedCount} / ${projects.length})`;
+                
+                if (loadedCount === projects.length) {
+                    pageIndicator.textContent = '所有页面加载完毕!';
+                    setTimeout(() => {
+                        prevBtn.classList.add('visible');
+                        nextBtn.classList.add('visible');
+                        updateIndicator(currentIndex);
+                    }, 1000);
+                }
+            }
+
             projects.forEach((project, i) => {
                 const iframe = document.createElement('iframe');
                 iframe.id = `work-${i + 1}`;
                 iframe.className = 'portfolio-iframe';
                 iframe.src = project.file; 
-                if (i !== 0) {
-                    iframe.loading = 'lazy'; // 对非首个页面使用延迟加载，提升性能
-                }
+                
+                iframe.addEventListener('load', onIframeLoad);
+                iframe.addEventListener('error', onIframeLoad);
+
                 container.appendChild(iframe);
             });
 
@@ -96,18 +112,20 @@
                 return;
             }
 
-            function showPage(index) {
-                iframes.forEach((iframe, i) => {
-                    if (i === index) {
-                        iframe.classList.add('active');
-                    } else {
-                        iframe.classList.remove('active');
-                    }
-                });
-                
+            function updateIndicator(index) {
                 const project = projects[index];
                 document.title = `${mainTitle} - ${project.title}`;
                 pageIndicator.textContent = `${project.title} (${index + 1} / ${projects.length})`;
+            }
+
+            function showPage(index) {
+                iframes.forEach((iframe, i) => {
+                    iframe.classList.toggle('active', i === index);
+                });
+                
+                if (loadedCount === projects.length) {
+                    updateIndicator(index);
+                }
             }
 
             prevBtn.addEventListener('click', () => {
@@ -120,8 +138,9 @@
                 showPage(currentIndex);
             });
 
-            // 初始显示第一个页面
-            showPage(currentIndex);
+            if (iframes.length > 0) {
+                iframes[0].classList.add('active');
+            }
         });
     </script>
 </body>
